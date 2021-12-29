@@ -151,6 +151,15 @@ abstract class XSCoreBase()(implicit p: config.Parameters) extends LazyModule
   require(exuParameters.FmiscCnt <= exuParameters.FmacCnt && exuParameters.FmiscCnt > 0)
   require(exuParameters.LduCnt == 2 && exuParameters.StuCnt == 2)
 
+
+  /** For now, a [[ExuConfig]] represents a exe-unit,
+   *  we use [[ExuConfig]]s to determine the ports/size
+   *  required by real hardware(eg. ports of write-back arbiter).
+   *  This can be done by using diplomacy instead of our
+   *  handwritten [[ExuConfig]]s. Using [[ExuConfig]] make code
+   *  really hard to read.
+   */
+
   // one RS every 2 MDUs
   val schedulePorts = Seq(
     // exuCfg, numDeq, intFastWakeupTarget, fpFastWakeupTarget
@@ -170,7 +179,9 @@ abstract class XSCoreBase()(implicit p: config.Parameters) extends LazyModule
 
   // should do outer fast wakeup ports here
   val otherFastPorts = schedulePorts.zipWithIndex.map { case (sche, i) =>
+    /** [[otherCfg]]: remove [[sche]] itself */
     val otherCfg = schedulePorts.zipWithIndex.filter(_._2 != i).map(_._1).reduce(_ ++ _)
+    // TODO: docs for following code...
     val outerPorts = sche.map(cfg => {
       // exe units from this scheduler need fastUops from exeunits
       val outerWakeupInSche = sche.filter(_._1.wakeupFromExu)
@@ -210,6 +221,20 @@ abstract class XSCoreBase()(implicit p: config.Parameters) extends LazyModule
   val outFpRfReadPorts = Seq(0, 2)
   val hasIntRf = Seq(true, false)
   val hasFpRf = Seq(false, true)
+
+  /** Backend structure
+   *
+   *  [[ExuBlock]]
+   *    -> [[Scheduler]]
+   *         -> [[xiangshan.backend.dispatch.Dispatch2Rs]]
+   *         -> [[xiangshan.backend.issue.ReservationStationWrapper]]
+   *    -> [[FUBlock]]
+   *         -> [[xiangshan.backend.exu.ExeUnit]]
+   *              ->[[xiangshan.backend.fu.FunctionUnit]]
+   *  [[MemBlock]]
+   */
+
+  /** [[exuBlocks]] -> Seq(intExuBlock, fpExuBlock) */
   val exuBlocks = schedulePorts.zip(dispatchPorts).zip(otherFastPorts).zipWithIndex.map {
     case (((sche, disp), other), i) =>
       LazyModule(new ExuBlock(sche, disp, intWbPorts, fpWbPorts, other, outIntRfReadPorts(i), outFpRfReadPorts(i), hasIntRf(i), hasFpRf(i)))

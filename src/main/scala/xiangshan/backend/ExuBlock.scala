@@ -24,6 +24,19 @@ import utils._
 import xiangshan._
 import xiangshan.backend.exu._
 
+/** Top wrapper for a execution group(dispatch + rs + exu)
+ * TODO: explain params
+ * @param configs
+ * @param dpPorts
+ * @param intRfWbPorts
+ * @param fpRfWbPorts
+ * @param outFastPorts
+ * @param outIntRfReadPorts
+ * @param outFpRfReadPorts
+ * @param hasIntRf
+ * @param hasFpRf
+ * @param p
+ */
 class ExuBlock(
   val configs: Seq[(ExuConfig, Int, Seq[ExuConfig], Seq[ExuConfig])],
   val dpPorts: Seq[Seq[(Int, Int)]],
